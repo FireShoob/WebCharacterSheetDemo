@@ -1,9 +1,3 @@
-function displayTotalPerPerson(person: string, total: number) {
-    let deck: DeckOfCards = new DeckOfCards();
-    deck.shuffle();
-    document.getElementById("totalMessage").innerText = deck.toString();
-}
-
 enum Color {Default, Black, Red}
 enum Suit {Spades = 4, Clubs = 1, Diamonds = 2, Hearts = 3, Joker = 5}
 enum Rank {Ace = 1, Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten, Jack, Queen, King }
@@ -38,9 +32,9 @@ class Card
     {
         if(this.joker)
         {
-            return Color[this.color] + " Joker";
+            return Color[this.color] + " Joker " + this.getDiceLevel().toString()+DiceType[this.getDiceType()];
         }
-        return Rank[this.rank] + " of " + Suit[this.suit];
+        return Rank[this.rank] + " of " + Suit[this.suit] + " " + this.getDiceLevel().toString()+DiceType[this.getDiceType()];
     }
 
     getDiceLevel(): number
@@ -60,15 +54,15 @@ class Card
         {
             return DiceType.d4;
         }
-        else if (this.rank == (Rank.Three|Rank.Four|Rank.Five|Rank.Six|Rank.Seven|Rank.Eight))
+        else if ((this.rank.valueOf() >= Rank.Three) && (this.rank.valueOf() <= Rank.Eight))
         {
             return DiceType.d6;
         }
-        else if (this.rank == (Rank.Nine|Rank.Ten|Rank.Jack))
+        else if ((this.rank.valueOf() >= Rank.Nine) && (this.rank.valueOf() <= Rank.Jack))
         {
             return DiceType.d8;
         }
-        else if (this.rank == (Rank.Queen|Rank.King))
+        else if ((this.rank == Rank.Queen) || (this.rank == Rank.King))
         {
             return DiceType.d10;
         }
