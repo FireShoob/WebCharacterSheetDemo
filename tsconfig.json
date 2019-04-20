@@ -1,14 +1,27 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
-    "target": "es5",
-    "sourceMap": true,
-    "outDir": "build"
+      "moduleResolution": "node",
+      "target": "es5",
+      "sourceMap": true,
+      "removeComments": true,
+      "preserveConstEnums": true,
+      "experimentalDecorators": true,
+      "allowJs": true,
+      "allowUnreachableCode": false,
+      "alwaysStrict": true,
+      "noImplicitReturns": true,
+      "noFallthroughCasesInSwitch": true,
+      "noImplicitAny": true,
+      "noImplicitThis": true,
+      "noUnusedParameters": true,
+      "strictNullChecks": false,
+      "lib": ["es2017", "dom"],
+      "outDir": "build"
   },
   "exclude": [
     "node_modules"
   ],
   "include": [
-    "src/scripts/**/*"
+    "src/**/*"
   ]
 }
