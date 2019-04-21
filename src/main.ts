@@ -482,20 +482,23 @@ class CanvasShape
     images: string[];
     constructor(x:number = 0, y:number = 0, w:number = 1, h:number = 1)
     {
+        this.images = [];
         this.x = x;
         this.y = y;
         this.w = w;
         this.h = h;
+        this.images.push(cards_joker_red);
+        this.images.push(cards_40_spades);
+        this.images.push(cards_04_clubs);
     }
 
     draw(ctx: CanvasRenderingContext2D): void
     {
-
         for(var i = (this.images.length - 1); i >= 0; i--)
         {
             var img = new Image();
             img.src = this.images[i];
-            ctx.drawImage(img, this.x + (i*5), this.y, this.w, this.h);
+            ctx.drawImage(img, this.x + (i*15), this.y, this.w, this.h);
         }
     }
 
@@ -511,11 +514,6 @@ class DeckCanvas
     private readonly moon: HTMLImageElement = new Image();
     private readonly earth: HTMLImageElement = new Image();
 
-    private readonly earthOrbitRadius = 105;
-    private readonly earthRadius = 12;
-    private readonly moonOrbitRadius = 28.5;
-    private readonly moonRadius = 3.5;
-
     private readonly ctx: CanvasRenderingContext2D;
     private readonly canvasWidth: number;
     private readonly canvasHeight: number;
@@ -523,10 +521,16 @@ class DeckCanvas
     private readonly deckOfCards: DeckOfCards;
     private shapes: CanvasShape[];
     private dragging: boolean;
-    private myState: DeckCanvas;
+    private canvas: HTMLCanvasElement;
+
+    private selection: CanvasShape;
+    private valid: boolean;
+    private dragoffx: number;
+    private dragoffy: number;
 
     constructor(canvas: HTMLCanvasElement)
     {
+        this.canvas = canvas;
         this.deckOfCards = new DeckOfCards();
         this.deckOfCards.shuffle();
 
@@ -540,21 +544,23 @@ class DeckCanvas
 
         this.shapes = [];
         this.dragging = false;
-        this.myState = this;
+        var myState = this;
 
         //fixes a problem where double clicking causes text to get selected on the canvas
         canvas.addEventListener('selectstart', function(e) { e.preventDefault(); return false; }, false);
         // Up, down, and move are for dragging
         canvas.addEventListener('mousedown', function (e)
         {
-            var mouse = getMouse();
-            var mx = mouse.x;
-            var my = mouse.y;
-            var shapes = myState.shapes;
-            var l = shapes.length;
-            for (var i = l-1; i >= 0; i--) {
-                if (shapes[i].contains(mx, my)) {
-                    var mySel = shapes[i];
+            let mouse = getCursorPosition(canvas, e);
+            let mx = mouse.x;
+            let my = mouse.y;
+            let shapes = myState.shapes;
+            let l = shapes.length;
+            for (var i = l-1; i >= 0; i--)
+            {
+                if (shapes[i].contains(mx, my))
+                {
+                    let mySel = shapes[i];
                     // Keep track of where in the object we clicked
                     // so we can move it smoothly (see mousemove)
                     myState.dragoffx = mx - mySel.x;
@@ -567,68 +573,71 @@ class DeckCanvas
             }
             // havent returned means we have failed to select anything.
             // If there was an object selected, we deselect it
-            if (myState.selection) {
+            if (myState.selection)
+            {
                 myState.selection = null;
                 myState.valid = false; // Need to clear the old selection border
             }
-        }, true)
+        }, true);
+        canvas.addEventListener('mousemove', function(e)
+        {
+            if (myState.dragging)
+            {
+                let mouse = getCursorPosition(canvas, e);
+                // We don't want to drag the object by its top-left corner, we want to drag it
+                // from where we clicked. Thats why we saved the offset and use it here
+                myState.selection.x = mouse.x - myState.dragoffx;
+                myState.selection.y = mouse.y - myState.dragoffy;
+                myState.valid = false; // Something's dragging so we must redraw
+            }
+        }, true);
+        canvas.addEventListener('mouseup', function()
+        {
+            myState.dragging = false;
+        }, true);
 
-
+        this.shapes.push(new CanvasShape(50,50,71,96));
         window.requestAnimationFrame(() => this.draw());
+
+
     }
 
-    draw() {
-        this.ctx.globalCompositeOperation = 'destination-over';
-        this.ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight); // clear canvas
-
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-        this.ctx.strokeStyle = 'rgba(0, 153, 255, 0.4)';
-        this.ctx.save();
-        this.ctx.translate(this.canvasWidth / 2, this.canvasHeight / 2);
-
-        // Earth
-        const time = new Date();
-        const angle =
-            ((2 * Math.PI) / 60) * time.getSeconds() +
-            ((2 * Math.PI) / 60000) * time.getMilliseconds();
-        this.ctx.rotate(angle);
-        this.ctx.translate(this.earthOrbitRadius, 0);
-        this.ctx.fillRect(
-            0,
-            -this.earthRadius,
-            this.earthRadius + this.moonOrbitRadius + this.moonRadius,
-            2 * this.earthRadius
-        ); // Shadow
-        this.ctx.drawImage(this.earth, -this.earthRadius, -this.earthRadius);
-
-        // Moon
-        this.ctx.save();
-        this.ctx.rotate(10 * angle);
-        this.ctx.translate(0, this.moonOrbitRadius);
-        this.ctx.drawImage(this.moon, -this.moonRadius, -this.moonRadius);
-        this.ctx.restore();
-
-        this.ctx.restore();
-
-        this.ctx.beginPath();
-        this.ctx.arc(
-            this.canvasWidth / 2,
-            this.canvasHeight / 2,
-            this.earthOrbitRadius,
-            0,
-            Math.PI * 2,
-            false
-        ); // Earth orbit
-        this.ctx.stroke();
-
-        this.ctx.drawImage(this.sun, 0, 0, this.canvasWidth, this.canvasHeight);  // Sun
-
-        window.requestAnimationFrame(() => this.draw());
-    }
-
-    getMouse(): {mx: number, my:number}
+    draw()
     {
+        if (!this.valid)
+        {
+            var ctx = this.ctx;
+            var shapes = this.shapes;
+            this.ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
 
+            // ** Add stuff you want drawn in the background all the time here **
+
+            // draw all shapes
+            var l = shapes.length;
+            for (var i = 0; i < l; i++)
+            {
+                var shape = shapes[i];
+                // We can skip the drawing of elements that have moved off the screen:
+                if (shape.x > this.canvasWidth || shape.y > this.canvasHeight ||
+                    shape.x + shape.w < 0 || shape.y + shape.h < 0) continue;
+                shapes[i].draw(ctx);
+            }
+
+            // draw selection
+            // right now this is just a stroke along the edge of the selected Shape
+            if (this.selection != null)
+            {
+                ctx.strokeStyle = '#CC0000';
+                ctx.lineWidth = 2;
+                var mySel = this.selection;
+                ctx.strokeRect(mySel.x, mySel.y, mySel.w, mySel.h);
+            }
+
+            // ** Add stuff you want drawn on top all the time here **
+
+            this.valid = true;
+        }
+        window.requestAnimationFrame(() => this.draw());
     }
 }
 
@@ -636,6 +645,14 @@ function main()
 {
     const canvas = <HTMLCanvasElement>document.getElementById('deck-canvas');
     new DeckCanvas(canvas);
+}
+
+function getCursorPosition(canvas: HTMLCanvasElement, event: any)
+{
+    var rect = canvas.getBoundingClientRect();
+    var x = event.clientX - rect.left;
+    var y = event.clientY - rect.top;
+    return {x, y};
 }
 
 main();
